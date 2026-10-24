@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0b1114">
+  <meta name="description" content="Labstride is an open-source, self-hosted foundation for GitHub-driven development workspaces and workflows. Explore the architecture and contribute to the project.">
+  <title>Labstride — Open workflows. Your tools.</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1114;
+      --bg-2: #10181b;
+      --panel: #111b1f;
+      --panel-raised: #152126;
+      --line: #28383d;
+      --line-soft: #1d2c30;
+      --text: #f0f6f3;
+      --muted: #9daeb1;
+      --muted-2: #72868a;
+      --accent: #b8f5ce;
+      --accent-strong: #77dca5;
+      --accent-deep: #3c986f;
+      --amber: #efc68e;
+      --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", "Segoe UI Mono", Consolas, monospace;
+      --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --content: 1200px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 98px; }
+    body { margin: 0; overflow-x: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+    ::selection { color: #06120c; background: var(--accent); }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+    .sr-only { position: absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    .skip { position: fixed; top: 10px; left: 14px; z-index: 200; padding: 10px 16px; background: var(--accent); color: #092017; transform: translateY(-150%); }
+    .skip:focus { transform: translateY(0); }
+    .container { width: min(calc(100% - 80px), var(--content)); margin-inline: auto; }
+    .icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    .mono { font-family: var(--mono); letter-spacing: .02em; }
+
+    .announcement { border-bottom: 1px solid #22332f; background: #111c1b; position: relative; z-index: 20; }
+    .announcement-inner { min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: 22px; color: #9cbdad; font: 10px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .announcement p { margin:0; display:flex; align-items:center; gap:10px; }
+    .mobile-status { display:none; }
+    .status-dot { position: relative; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-strong); box-shadow: 0 0 0 4px rgb(119 220 165 / .08); flex: none; }
+    .announcement a { color: var(--accent); display:inline-flex; align-items:center; gap:6px; }
+    .announcement a:hover { color: white; }
+
+    .site-header { position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(119,146,139,.14); background: rgba(11, 17, 20, .88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+    .header-inner { height: 78px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
+    .brand { display:inline-flex; align-items:center; gap:12px; flex:none; min-width:0; }
+    .brand-mark { width: 34px; height: 34px; border:1px solid #3c7360; border-radius: 9px; background: #142820; display:grid; place-items:center; }
+    .brand-mark svg { width: 22px; height: 22px; color: var(--accent); }
+    .brand-name { font-size: 20px; line-height:1; letter-spacing:-.055em; font-weight:700; }
+    .brand-suffix { color: #72938a; font-size: 12px; margin-left:1px; font-weight:500; letter-spacing:-.02em; }
+    .desktop-nav { display:flex; gap:34px; align-items:center; margin-left:auto; }
+    .desktop-nav a { font-size: 13px; color: #afbbbd; font-weight:500; transition: color .2s; }
+    .desktop-nav a:hover, .desktop-nav a[aria-current="true"] { color: var(--accent); }
+    .header-github { display: inline-flex; align-items:center; gap:10px; padding: 11px 15px; background:#182326; border:1px solid #314044; border-radius:8px; font-size:12px; font-weight:600; transition: border-color .2s, background .2s; white-space:nowrap; }
+    .header-github:hover { background: #233135; border-color:#638379; }
+    .header-github .icon { width:16px; height:16px; }
+    .menu-button { display:none; width:42px; height:42px; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:9px; color:var(--text); background:var(--panel); cursor:pointer; }
+    .mobile-nav { display:none; }
+
+    .hero { position:relative; isolation:isolate; padding: 100px 0 95px; }
+    .hero::before { content:""; position:absolute; z-index:-2; inset:0 0 auto; height:760px; opacity:.5; background-image: linear-gradient(rgba(62,107,99,.13) 1px, transparent 1px), linear-gradient(90deg,rgba(62,107,99,.13) 1px,transparent 1px); background-size: 53px 53px; mask-image: linear-gradient(to bottom, rgba(0,0,0,.7), transparent 96%); }
+    .hero::after { content:""; position:absolute; z-index:-1; top:-180px; right:0; width:min(60vw,850px); height:750px; background: radial-gradient(ellipse at center, rgba(31,91,73,.23), transparent 67%); pointer-events:none; }
+    .hero-grid { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1.04fr); gap:72px; align-items:center; }
+    .eyebrow { margin:0 0 26px; color: var(--accent-strong); font: 11px/1.55 var(--mono); letter-spacing: .11em; text-transform:uppercase; display:flex; align-items:center; gap:11px; }
+    .eyebrow::before { content:""; display:inline-block; width:24px; height:1px; background:var(--accent-strong); }
+    .hero h1 { max-width: 660px; margin:0; font-size:clamp(54px,5.9vw,86px); line-height:1.06; font-weight:600; letter-spacing:-.075em; }
+    .hero h1 span { color:var(--accent); }
+    .hero-copy { margin: 28px 0 30px; max-width:526px; font-size: 16px; line-height:1.85; font-weight:400; color:#afc0be; }
+    .hero-cta { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+    .button { min-height: 46px; border-radius: 8px; display:inline-flex; align-items:center; justify-content:center; gap:11px; padding: 12px 17px; font-size: 13px; line-height: 1.2; font-weight:650; transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease; white-space:nowrap; }
+    .button:hover { transform: translateY(-2px); }
+    .button .icon { width:16px; height:16px; }
+    .button-primary { background: var(--accent); color:#0b2217; box-shadow:0 8px 28px rgb(111 243 166 / .05); }
+    .button-primary:hover { background:#d1ffe1; box-shadow:0 10px 32px rgb(111 243 166 / .12); }
+    .button-secondary { border:1px solid #425659; color:#e3eeea; background:rgba(19,28,32,.8); }
+    .button-secondary:hover { background:#263437; border-color:#6b8983; }
+    .hero-meta { margin-top:39px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .meta-tag { color:#97aca8; font:10px/1.3 var(--mono); border:1px solid #32413f; border-radius:6px; padding:9px 10px; background:rgba(17,27,30,.58); letter-spacing:.018em; }
+    .meta-tag b { color:#d7e2de; font-weight:600; }
+    .hero-meta .separator { color:#52706a; font-family:var(--mono); }
+    .hero-note { margin: 17px 0 0; color: #83999a; font-size: 12px; line-height:1.7; }
+    .hero-note strong { color: #bfcecc; font-weight:500; }
+
+    .flow-shell { border: 1px solid #3b5553; background:linear-gradient(150deg, #162427 0%,#101a1e 58%,#111d21 100%); border-radius: 17px; overflow: hidden; box-shadow: 0 40px 90px rgba(0,0,0,.21), inset 0 1px rgba(255,255,255,.04); position:relative; }
+    .flow-shell::before { content:""; position:absolute; inset:0; background-image:radial-gradient(#82988b .32px, transparent .32px); background-size:16px 16px; opacity:.11; pointer-events:none; }
+    .flow-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding: 18px 21px; border-bottom:1px solid #33474a; position:relative; }
+    .window-dots { display:flex; gap:6px; }
+    .window-dots i { display:block; width:7px; height:7px; border:1px solid #5d7372; border-radius:50%; }
+    .flow-heading span { font:10px var(--mono); color: #91a8a5; letter-spacing:.08em; }
+    .flow-content { padding: 28px 30px 22px; position:relative; }
+    .flow-legend { display:flex; align-items:center; justify-content:space-between; gap:10px; font: 10px var(--mono); color:#789791; margin:0 0 18px; text-transform:uppercase; letter-spacing:.08em; }
+    .flow-legend strong { font-weight:500; color:#bdd0ca; }
+    .flow-track { position:relative; margin: 0 4px; }
+    .flow-track::before { position:absolute; content:""; z-index:0; top:31px; bottom:30px; left:21px; width:1px; background: repeating-linear-gradient(to bottom, #45775e 0 5px,transparent 5px 10px); }
+    .flow-item { display:grid; grid-template-columns: 44px 1fr; gap:12px; align-items:center; position:relative; z-index:1; margin:0 0 10px; }
+    .flow-item:last-child { margin-bottom:0; }
+    .node-index { width:43px; height:43px; display:grid; place-items:center; border:1px solid #3a5d51; border-radius:10px; background:#182a25; color:var(--accent-strong); font: 11px var(--mono); }
+    .flow-item.is-central .node-index { background:var(--accent); color:#10291e; border-color:var(--accent); }
+    .node-box { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:67px; border:1px solid #344649; border-radius:10px; padding:12px 16px; background:rgba(24,35,40,.87); }
+    .flow-item.is-central .node-box { border-color:#558e72; background:linear-gradient(90deg,rgba(52,110,79,.2),rgba(24,35,40,.87)); }
+    .node-box strong { display:block; font-size:13px; font-weight:600; letter-spacing:-.015em; }
+    .node-box small { display:block; margin-top:5px; color:#95a9a8; font-size:10.5px; line-height:1.5; }
+    .node-symbol { display:grid; place-items:center; height:34px; width:34px; border:1px solid #3c5553; background:#22322f; color:#91d9b0; border-radius:8px; }
+    .node-symbol .icon { height:17px; width:17px; }
+    .flow-item.is-central .node-symbol { background: #1c3c2c; }
+    .flow-branch { display:flex; align-items:center; justify-content:flex-end; margin: 15px 0 0; gap:9px; color:#a7b9b5; font: 10px var(--mono); }
+    .flow-branch::before { content:""; width:36px; border-top:1px dashed #567d6d; }
+    .flow-branch b { font-weight:500; color:var(--accent); }
+    .flow-bottom { margin-top:19px; padding-top:17px; border-top:1px solid #2b4240; display:flex; gap:8px; justify-content:space-between; align-items:center; font:10px var(--mono); color:#9dafac; }
+    .flow-bottom .return-arrow { color:var(--accent); font-size:16px; }
+    .flow-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 20px; border-top:1px solid #33474a; background:rgba(8,18,19,.33); font:10px var(--mono); color:#78908c; }
+    .flow-footer em { font-style:normal; color:#a7bbae; }
+
+    .signal-wrap { border-top:1px solid #223036; border-bottom:1px solid #223036; background:#0e1518; }
+    .signals { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .signal { min-height:96px; padding:28px 25px; border-right:1px solid #253336; display:flex; gap:16px; align-items:flex-start; }
+    .signal:first-child { padding-left:0; }
+    .signal:last-child { border-right:0; }
+    .signal-icon { color:var(--accent-strong); margin-top:2px; }
+    .signal strong { font-size:12px; font-weight:600; display:block; }
+    .signal small { display:block; margin-top:5px; color:var(--muted-2); font:10px/1.6 var(--mono); }
+
+    .section { padding: 124px 0; }
+    .section-top { display:flex; justify-content:space-between; gap:30px; align-items:end; margin-bottom:46px; }
+    .section-kicker { font:11px/1.5 var(--mono); color:var(--accent-strong); letter-spacing:.13em; text-transform:uppercase; margin:0 0 22px; }
+    .section-kicker b { color:#729288; font-weight:400; margin-right:13px; }
+    .section-title { max-width:685px; margin:0; font-size:clamp(38px,4.25vw,60px); line-height:1.12; font-weight:600; letter-spacing:-.064em; }
+    .section-subtitle { max-width:350px; color:var(--muted); font-size:14px; line-height:1.9; margin: 0 0 3px; }
+    .principles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+    .principle-card { min-height:320px; border:1px solid #273a3b; border-radius:12px; padding:29px; background:linear-gradient(145deg,#142024,#10191c); display:flex; flex-direction:column; transition: border-color .2s, transform .2s; }
+    .principle-card:hover { border-color:#548271; transform:translateY(-4px); }
+    .principle-top { display:flex; justify-content:space-between; align-items:start; }
+    .principle-count { color:#68877e; font:11px var(--mono); }
+    .principle-symbol { display:grid; place-items:center; width:53px; height:53px; border:1px solid #3c6453; color:var(--accent); border-radius:13px; background:rgba(67,124,90,.1); }
+    .principle-symbol .icon { width:25px; height:25px; }
+    .principle-card h3 { font-size:20px; line-height:1.25; letter-spacing:-.035em; font-weight:600; margin:auto 0 13px; padding-top:45px; }
+    .principle-card p { font-size:13px; line-height:1.85; margin:0; color:#91a4a6; }
+
+    .architecture { padding-top:40px; }
+    .architecture-grid { display:grid; grid-template-columns: .81fr 1.19fr; gap:90px; align-items:start; }
+    .architecture-copy { position:sticky; top:130px; padding-top:19px; }
+    .architecture-copy .section-title { margin-bottom:28px; }
+    .architecture-copy > p:not(.section-kicker) { color:var(--muted); font-size:15px; line-height:1.9; max-width:430px; margin:0 0 28px; }
+    .text-link { color:var(--accent); font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:8px; }
+    .text-link .icon { width:16px; height:16px; transition:transform .2s; }
+    .text-link:hover .icon { transform:translate(3px,-3px); }
+    .arch-board { padding:11px; border:1px solid #33484a; border-radius:16px; background:#121c20; box-shadow:0 30px 55px rgba(0,0,0,.12); }
+    .arch-board-top { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #2b3d40; padding:13px 16px 20px; gap:10px; }
+    .arch-board-top > span { font:10px var(--mono); color:#93aaa3; letter-spacing:.07em; }
+    .arch-mini-status { color:#8fbca2; font:10px var(--mono); display:flex; align-items:center; gap:7px; }
+    .ownership { display:flex; flex-direction:column; gap:8px; padding-top:11px; }
+    .owner-row { display:grid; grid-template-columns: 34px 1.05fr 1.3fr; align-items:center; gap:13px; padding:17px 16px; background:#19272a; border:1px solid #2c4140; border-radius:10px; }
+    .owner-row:first-child { background:#1c302b; border-color:#42685a; }
+    .owner-icon { display:grid; place-items:center; width:34px; height:34px; color:var(--accent-strong); }
+    .owner-name { font-size:13px; font-weight:600; line-height:1.4; }
+    .owner-type { display:block; margin-top:3px; font:10px/1.4 var(--mono); color:#78968f; }
+    .owner-role { font-size:11.5px; line-height:1.7; color:#afc2bf; }
+    .arch-board-note { margin-top:10px; padding:17px 16px 12px; color:#879b96; font:10px/1.75 var(--mono); display:flex; gap:9px; align-items:start; }
+    .arch-board-note .icon { flex:none; color:var(--accent-strong); margin-top:1px; height:16px; width:16px; }
+
+    .status-section { margin-top:26px; padding:106px 0 110px; border-top:1px solid #243639; border-bottom:1px solid #243639; background:radial-gradient(ellipse 52% 70% at 95% 30%,rgba(29,62,54,.22),transparent 80%),#10191d; }
+    .status-layout { display:grid; grid-template-columns: .85fr 1.15fr; gap:78px; align-items:start; }
+    .status-copy .section-title { margin-bottom:24px; }
+    .status-copy p:not(.section-kicker) { font-size:14px; line-height:1.85; color:#9eb2b1; max-width:420px; }
+    .status-copy .text-link { margin-top:13px; }
+    .milestones { border:1px solid #304447; border-radius:14px; overflow:hidden; background:#142125; }
+    .milestone { display:grid; grid-template-columns: 27px 1fr; gap:11px; padding:27px 28px; border-bottom:1px solid #2e4143; }
+    .milestone:last-child { border-bottom:none; }
+    .milestone-dot { width:10px; height:10px; border-radius:50%; margin-top:5px; border:2px solid #7fb99a; background:#3b7456; box-shadow:0 0 0 5px rgba(100,184,133,.07); }
+    .milestone.is-progress .milestone-dot { border-color:#e9c48d; background:#806846; box-shadow:0 0 0 5px rgba(233,196,141,.08); }
+    .milestone.is-future .milestone-dot { border-color:#647577; background:transparent; box-shadow:none; }
+    .milestone-head { display:flex; justify-content:space-between; gap:20px; align-items:start; }
+    .milestone h3 { font-size:15px; font-weight:600; letter-spacing:-.025em; margin:0 0 9px; }
+    .milestone-label { color:#b0c4b3; font:10px/1.4 var(--mono); text-transform:uppercase; white-space:nowrap; }
+    .milestone.is-progress .milestone-label { color:#e5c38e; }
+    .milestone.is-future .milestone-label { color:#84989a; }
+    .milestone p { margin:0; color:#94a9a9; font-size:12px; line-height:1.8; max-width:490px; }
+
+    .faq { padding-top:110px; padding-bottom:110px; }
+    .faq-layout { display:grid; grid-template-columns: .8fr 1.2fr; gap:85px; }
+    .faq-layout .section-title { font-size:clamp(35px,4vw,52px); }
+    .faq-list { border-top:1px solid #334649; }
+    .faq-list details { border-bottom:1px solid #334649; padding:0; }
+    .faq-list summary { list-style:none; position:relative; padding:25px 45px 25px 0; font-weight:600; font-size:14px; line-height:1.5; cursor:pointer; }
+    .faq-list summary::-webkit-details-marker { display:none; }
+    .faq-list summary::after { content:"+"; font: 23px/1 var(--mono); color:var(--accent); position:absolute; right:6px; top:24px; }
+    .faq-list details[open] summary::after { content:"−"; }
+    .faq-list details p { margin:0 35px 24px 0; color:#99acac; font-size:13px; line-height:1.9; max-width:520px; }
+    .faq-list a { color:var(--accent); text-decoration:underline; text-underline-offset:3px; }
+
+    .contribute { padding: 20px 0 110px; }
+    .contribute-panel { position:relative; overflow:hidden; border-radius:17px; padding:57px 64px; background:var(--accent); color:#10271a; display:grid; grid-template-columns: 1.15fr .85fr; align-items:center; gap:70px; }
+    .contribute-panel::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.23; background-image: linear-gradient(to right,#1c5339 1px,transparent 1px),linear-gradient(to bottom,#1c5339 1px,transparent 1px); background-size: 50px 50px; mask-image:linear-gradient(to left, #000,transparent 70%); }
+    .contribute-panel::after { content:""; position:absolute; pointer-events:none; width:320px;height:320px; border:1px solid rgba(11,43,24,.22); border-radius:50%; right:-70px; top:-170px; box-shadow: 0 0 0 60px rgba(12,48,23,.045), 0 0 0 120px rgba(12,48,23,.03); }
+    .contribute-kicker { font:11px var(--mono); text-transform:uppercase; letter-spacing:.1em; color:#3a714f; margin:0 0 17px; }
+    .contribute-panel h2 { position:relative; font-size: clamp(33px,3.6vw,51px); line-height:1.13; letter-spacing:-.065em; font-weight:650; max-width:650px; margin:0; }
+    .contribute-action { position:relative; z-index:1; }
+    .contribute-action p { color:#355a42; font-size:14px; line-height:1.75; margin:0 0 23px; }
+    .contribute-buttons { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .button-ink { background:#11291c; color:#ddffea; }
+    .button-ink:hover { background:#1c4430; }
+    .button-outline-dark { color:#163825; border:1px solid #5a9972; background:rgba(255,255,255,.12); }
+    .button-outline-dark:hover { background:rgba(255,255,255,.35); }
+
+    .footer { background:#080e10; padding:55px 0 30px; border-top:1px solid #243337; }
+    .footer-top { display:flex; justify-content:space-between; gap:40px; padding-bottom:60px; }
+    .footer-brand .brand { margin-bottom:15px; }
+    .footer-brand p { color:#8ba09e; font-size:12px; line-height:1.8; max-width:350px; margin:0; }
+    .footer-nav { display:flex; gap:80px; }
+    .footer-nav h4 { margin:1px 0 17px; color:#728e87; font:10px var(--mono); text-transform:uppercase; letter-spacing:.1em; }
+    .footer-nav a { display:block; color:#b0bfbc; font-size:12px; margin-top:14px; }
+    .footer-nav a:hover { color:var(--accent); }
+    .footer-bottom { display:flex; gap:15px; justify-content:space-between; align-items:center; padding-top:20px; border-top:1px solid #1c2b2d; color:#6e8581; font:10px/1.65 var(--mono); }
+    .footer-bottom a { color:#9fbcaf; }
+
+    @media (max-width: 1120px) {
+      .hero-grid { gap:35px; }
+      .hero h1 { font-size:clamp(50px,6.6vw,70px); }
+      .flow-content { padding:24px 19px 20px; }
+      .architecture-grid { gap:45px; }
+      .signal { padding-inline:19px; gap:10px; }
+      .contribute-panel { gap:32px; padding:50px; }
+    }
+    @media (max-width: 900px) {
+      .container { width:min(calc(100% - 48px), var(--content)); }
+      .desktop-nav { gap:18px; }
+      .hero { padding:80px 0 70px; }
+      .hero-grid { grid-template-columns:1fr; gap:58px; }
+      .hero-left { max-width:690px; }
+      .hero h1 { max-width:790px; font-size:clamp(57px,8vw,78px); }
+      .hero-copy { max-width:620px; }
+      .flow-shell { max-width:710px; }
+      .signals { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .signal { padding:25px 15px; min-height:92px; }
+      .signal:nth-child(2) { border-right:none; }
+      .signal:nth-child(-n+2) { border-bottom:1px solid #253336; }
+      .signal:first-child, .signal:nth-child(3) { padding-left:0; }
+      .principles { gap:12px; }
+      .principle-card { padding:22px; min-height:330px; }
+      .architecture-grid { grid-template-columns:1fr; }
+      .architecture-copy { position:static; padding-top:0; }
+      .architecture-copy .section-title { max-width:640px; }
+      .architecture-copy > p:not(.section-kicker) { max-width:650px; }
+      .arch-board { max-width:790px; }
+      .status-layout { grid-template-columns:1fr; gap:25px; }
+      .status-copy p:not(.section-kicker) { max-width:690px; }
+      .faq-layout { grid-template-columns:1fr; gap:35px; }
+      .contribute-panel { grid-template-columns:1fr; gap:24px; }
+      .contribute-action p { max-width:560px; }
+    }
+    @media (max-width: 820px) {
+      .desktop-nav, .header-github { display:none; }
+      .menu-button { display:inline-flex; }
+      .mobile-nav { position:absolute; top:100%; left:0; right:0; border-bottom:1px solid #38504b; padding:8px 19px 20px; background:#101a1c; box-shadow:0 30px 40px rgba(0,0,0,.25); flex-direction:column; gap:0; }
+      .mobile-nav.is-open { display:flex; }
+      .mobile-nav a { color:#e1eeeb; font-size:15px; font-weight:500; padding:15px 9px; border-bottom:1px solid #26383a; }
+      .mobile-nav a:last-child { border-bottom:0; color:var(--accent); }
+    }
+    @media (max-width: 680px) {
+      html { scroll-padding-top:80px; }
+      .container { width:calc(100% - 38px); }
+      .announcement-inner { min-height:38px; font-size:9px; }
+      .desktop-status { display:none; }
+      .mobile-status { display:inline; }
+      .announcement .notice-right { display:none; }
+      .header-inner { height:66px; }
+      .brand-mark { width:33px; height:33px; }
+      .brand-name { font-size:19px; }
+      .desktop-nav, .header-github { display:none; }
+      .menu-button { display:inline-flex; }
+      .mobile-nav { position:absolute; top:100%; left:0; right:0; border-bottom:1px solid #38504b; padding:8px 19px 20px; background:#101a1c; box-shadow:0 30px 40px rgba(0,0,0,.25); flex-direction:column; gap:0; }
+      .mobile-nav.is-open { display:flex; }
+      .mobile-nav a { color:#e1eeeb; font-size:15px; font-weight:500; padding:15px 9px; border-bottom:1px solid #26383a; }
+      .mobile-nav a:last-child { border-bottom:0; color:var(--accent); }
+      .hero { padding:68px 0 56px; }
+      .hero-grid { gap:42px; }
+      .eyebrow { font-size:9px; gap:8px; margin-bottom:21px; }
+      .eyebrow::before { width:18px; }
+      .hero h1 { font-size:clamp(46px,11vw,65px); letter-spacing:-.07em; }
+      .hero-copy { font-size:14px; line-height:1.8; margin:24px 0 27px; }
+      .hero-cta { gap:9px; }
+      .button { padding-inline:14px; min-height:45px; font-size:12px; }
+      .hero-meta { margin-top:27px; gap:7px; }
+      .meta-tag { font-size:9px; padding:8px; }
+      .hero-note { font-size:11px; }
+      .flow-heading { padding:15px 14px; }
+      .flow-heading span { font-size:9px; }
+      .flow-content { padding:20px 13px 16px; }
+      .flow-legend { font-size:9px; }
+      .flow-track { margin:0; }
+      .flow-track::before { left:17px; }
+      .flow-item { grid-template-columns:35px 1fr; gap:9px; margin-bottom:8px; }
+      .node-index { width:35px; height:35px; font-size:10px; border-radius:8px; }
+      .node-box { min-height:65px; padding:10px 11px; }
+      .node-box strong { font-size:12px; }
+      .node-box small { font-size:9.5px; }
+      .node-symbol { width:30px; height:30px; }
+      .flow-branch { font-size:9px; }
+      .flow-bottom { font-size:9px; line-height:1.5; }
+      .flow-footer { padding:12px; font-size:9px; }
+      .signal { padding:20px 8px; gap:10px; }
+      .signal-icon .icon { width:16px; height:16px; }
+      .signal strong { font-size:11px; }
+      .signal small { font-size:9px; }
+      .section { padding:86px 0; }
+      .section-top { flex-direction:column; align-items:flex-start; gap:20px; margin-bottom:28px; }
+      .section-title { font-size:clamp(35px,8.5vw,45px); }
+      .section-kicker { margin-bottom:16px; font-size:10px; }
+      .section-subtitle { max-width:520px; font-size:13px; }
+      .principles { grid-template-columns:1fr; }
+      .principle-card { min-height:220px; padding:23px; }
+      .principle-card h3 { margin-top:30px; padding-top:0; font-size:19px; }
+      .principle-card p { max-width:500px; font-size:12.5px; }
+      .architecture { padding-top:7px; }
+      .architecture-copy .section-title { margin-bottom:20px; }
+      .architecture-copy > p:not(.section-kicker) { font-size:13px; }
+      .arch-board { padding:6px; }
+      .arch-board-top { padding:12px 11px 16px; }
+      .arch-board-top > span { font-size:9px; }
+      .arch-mini-status { font-size:9px; }
+      .owner-row { grid-template-columns: 26px 1fr; gap:8px 11px; padding:13px 11px; }
+      .owner-icon { width:26px; height:26px; }
+      .owner-icon .icon { width:17px; height:17px; }
+      .owner-role { grid-column:2; font-size:10.5px; margin-top:-3px; }
+      .owner-name { font-size:12px; }
+      .owner-type { font-size:9px; }
+      .arch-board-note { font-size:9px; }
+      .status-section { padding:84px 0; margin-top:0; }
+      .milestone { padding:22px 16px; }
+      .milestone-head { flex-direction:column; gap:2px; }
+      .milestone h3 { font-size:14px; margin-bottom:5px; }
+      .milestone p { font-size:11.5px; }
+      .faq { padding:85px 0; }
+      .faq-list summary { padding:21px 36px 21px 0; font-size:13px; }
+      .faq-list summary::after { top:19px; }
+      .faq-list details p { font-size:12px; }
+      .contribute { padding:10px 0 75px; }
+      .contribute-panel { padding:34px 24px; border-radius:13px; gap:22px; }
+      .contribute-panel h2 { font-size:clamp(34px,8.5vw,45px); }
+      .contribute-action p { font-size:13px; }
+      .contribute-buttons { align-items:stretch; }
+      .footer { padding:42px 0 24px; }
+      .footer-top { flex-direction:column; gap:45px; padding-bottom:45px; }
+      .footer-nav { gap:60px; }
+      .footer-bottom { align-items:flex-start; flex-direction:column; gap:6px; }
+    }
+    @media (max-width:360px) {
+      .container { width:calc(100% - 28px); }
+      .hero h1 { font-size:44px; }
+      .button { width:100%; }
+      .hero-cta { flex-direction:column; align-items:stretch; }
+      .node-box small { font-size:9px; }
+      .flow-legend strong { display:none; }
+      .footer-nav { gap:35px; }
+    }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; transition:none !important; animation:none !important; } }
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h16m-7-7 7 7-7 7"/></symbol>
+    <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M5 19 19 5M7 5h12v12"/></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path d="M9 19c-4 .8-4-2-5-2m10 4v-3.1a2.7 2.7 0 0 0-.75-2.1c2.5-.28 5.13-1.22 5.13-5.6a4.34 4.34 0 0 0-1.2-3 4 4 0 0 0-.1-3s-.98-.3-3.1 1.19a10.7 10.7 0 0 0-5.65 0C6.2 3.9 5.2 4.2 5.2 4.2a4 4 0 0 0-.1 3 4.34 4.34 0 0 0-1.2 3c0 4.35 2.64 5.32 5.14 5.6a2.7 2.7 0 0 0-.76 2.1V21"/></symbol>
+    <symbol id="i-gitbranch" viewBox="0 0 24 24"><circle cx="6" cy="3" r="2"/><path d="M6 5v12"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="6" r="2"/><path d="M18 8v3a6 6 0 0 1-6 6H8"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3m6 0h4"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Zm9 5v8l-9 5-9-5V8m9 5v8"/></symbol>
+    <symbol id="i-workflow" viewBox="0 0 24 24"><rect x="2" y="2" width="8" height="8" rx="2"/><rect x="14" y="14" width="8" height="8" rx="2"/><path d="M6 10v4a4 4 0 0 0 4 4h4M10 6h8a2 2 0 0 1 2 2v6"/></symbol>
+    <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 3 7M3 4v7h7"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 22-8-4V6l8-4 8 4v12l-8 4Zm-4-10 3 3 5-6"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-13h-7l0-7Z"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h8m4 0h4M4 17h4m4 0h8"/><circle cx="14" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-9h.01"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></symbol>
+  </svg>
+
+  <a class="skip" href="#main">Skip to content</a>
+
+  <div class="announcement">
+    <div class="container announcement-inner">
+      <p><span class="status-dot" aria-hidden="true"></span> <span class="desktop-status">Project status: early implementation / No installable release yet</span><span class="mobile-status">Early implementation · No release yet</span></p>
+      <p class="notice-right"><a href="https://github.com/engshort/labstride/blob/main/docs/14-work-packages.md" target="_blank" rel="noopener noreferrer">Track development <svg class="icon" style="width:12px;height:12px"><use href="#i-arrow-up-right"/></svg></a></p>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="Labstride homepage">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="m4 5 7 7-7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/><path d="m12 5 7 7-7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" opacity=".52"/></svg>
+        </span>
+        <span class="brand-name">labstride<span class="brand-suffix">.dev</span></span>
+      </a>
+      <nav class="desktop-nav" aria-label="Main navigation">
+        <a href="#approach">Principles</a>
+        <a href="#architecture">Architecture</a>
+        <a href="https://github.com/engshort/labstride/blob/main/docs/README.md" target="_blank" rel="noopener noreferrer">Docs ↗</a>
+        <a href="#status">Progress</a>
+        <a href="#contribute">Contribute</a>
+      </nav>
+      <a class="header-github" href="https://github.com/engshort/labstride" target="_blank" rel="noopener noreferrer"><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg> GitHub <svg class="icon" style="width:12px;height:12px" aria-hidden="true"><use href="#i-arrow-up-right"/></svg></a>
+      <button class="menu-button" id="menu-button" type="button" aria-controls="mobile-menu" aria-expanded="false" aria-label="Open navigation"><svg class="icon"><use id="menu-icon" href="#i-menu"/></svg></button>
+    </div>
+    <nav class="mobile-nav" id="mobile-menu" aria-label="Mobile navigation">
+      <a href="#approach">Principles</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#status">Progress</a>
+      <a href="#contribute">Contribute</a>
+      <a href="https://github.com/engshort/labstride" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="container hero-grid">
+        <div class="hero-left">
+          <p class="eyebrow">Open source <span aria-hidden="true">/</span> Self-hosted <span aria-hidden="true">/</span> In development</p>
+          <h1 id="hero-title">Open workflows.<br><span>Your tools.</span></h1>
+          <p class="hero-copy">A self-hosted foundation for development workspaces and workflows. Connect GitHub issues to isolated workspaces, use your existing CI and delivery workflows, and keep progress visible where you work.</p>
+          <div class="hero-cta">
+            <a class="button button-primary" href="https://github.com/engshort/labstride/blob/main/docs/01-product-and-scope.md" target="_blank" rel="noopener noreferrer">Explore the project <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg></a>
+            <a class="button button-secondary" href="https://github.com/engshort/labstride" target="_blank" rel="noopener noreferrer"><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg> View on GitHub</a>
+          </div>
+          <div class="hero-meta" aria-label="Project facts">
+            <span class="meta-tag"><b>Apache-2.0</b> license</span>
+            <span class="meta-tag"><b>GitHub</b> first</span>
+            <span class="meta-tag"><b>Agent</b> optional</span>
+          </div>
+          <p class="hero-note"><strong>Not a product launch.</strong> Specification, contract fixtures and early implementation are public; an installable release is not available yet.</p>
+        </div>
+
+        <div class="flow-shell" role="img" aria-label="Conceptual Labstride workflow: GitHub task and human decisions flow to a durable coordinator, then an isolated SSH workspace and repository-owned GitHub Actions. Technical progress is reported back to GitHub. An AI agent is optional.">
+          <div class="flow-heading"><div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div><span>LABSTRIDE / SYSTEM DESIGN</span><svg class="icon" style="width:15px;height:15px;color:#7ca596" aria-hidden="true"><use href="#i-workflow"/></svg></div>
+          <div class="flow-content">
+            <div class="flow-legend"><span>01 — CONCEPTUAL FLOW</span><strong>GitHub remains the interface</strong></div>
+            <div class="flow-track">
+              <div class="flow-item">
+                <div class="node-index">01</div>
+                <div class="node-box"><div><strong>GitHub issues</strong><small>Tasks · human decisions · visible progress</small></div><span class="node-symbol"><svg class="icon" aria-hidden="true"><use href="#i-gitbranch"/></svg></span></div>
+              </div>
+              <div class="flow-item is-central">
+                <div class="node-index">02</div>
+                <div class="node-box"><div><strong>Durable coordinator</strong><small>Execution identity · SQLite · recovery</small></div><span class="node-symbol"><svg class="icon" aria-hidden="true"><use href="#i-workflow"/></svg></span></div>
+              </div>
+              <div class="flow-item">
+                <div class="node-index">03</div>
+                <div class="node-box"><div><strong>Isolated SSH workspace</strong><small>Independent source checkout per issue</small></div><span class="node-symbol"><svg class="icon" aria-hidden="true"><use href="#i-terminal"/></svg></span></div>
+              </div>
+              <div class="flow-item">
+                <div class="node-index">04</div>
+                <div class="node-box"><div><strong>GitHub Actions</strong><small>Repository-owned CI &amp; delivery</small></div><span class="node-symbol"><svg class="icon" aria-hidden="true"><use href="#i-bolt"/></svg></span></div>
+              </div>
+            </div>
+            <div class="flow-branch"><b>+ OPTIONAL</b> Agent &amp; extension adapters</div>
+            <div class="flow-bottom"><span><span class="return-arrow" aria-hidden="true">↳</span> Results &amp; technical progress projected to GitHub</span><span style="color:#84c5a0">↗</span></div>
+          </div>
+          <div class="flow-footer"><span>DESIGN REFERENCE, NOT A LIVE INSTANCE</span><em>ADR-006 · HYBRID COORDINATION</em></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="signal-wrap" aria-label="Project characteristics">
+      <div class="container signals">
+        <div class="signal"><span class="signal-icon"><svg class="icon" aria-hidden="true"><use href="#i-gitbranch"/></svg></span><div><strong>GitHub-native</strong><small>Task &amp; decision surface</small></div></div>
+        <div class="signal"><span class="signal-icon"><svg class="icon" aria-hidden="true"><use href="#i-rotate"/></svg></span><div><strong>Recovery-oriented</strong><small>Durable execution records</small></div></div>
+        <div class="signal"><span class="signal-icon"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg></span><div><strong>Extensible by contract</strong><small>Replaceable integrations</small></div></div>
+        <div class="signal"><span class="signal-icon"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg></span><div><strong>Operator-controlled</strong><small>Self-hosted foundation</small></div></div>
+      </div>
+    </div>
+
+    <section class="section" id="approach" aria-labelledby="approach-title">
+      <div class="container">
+        <div class="section-top">
+          <div><p class="section-kicker"><b>01 /</b> THE APPROACH</p><h2 class="section-title" id="approach-title">Your workflow stays yours.<br>Labstride connects the pieces.</h2></div>
+          <p class="section-subtitle">The project is designed around ownership, continuity and clear boundaries — not another place to manage your work.</p>
+        </div>
+        <div class="principles">
+          <article class="principle-card"><div class="principle-top"><span class="principle-count">PRINCIPLE_01</span><span class="principle-symbol"><svg class="icon" aria-hidden="true"><use href="#i-gitbranch"/></svg></span></div><h3>GitHub remains the source of truth.</h3><p>Keep tasks, acceptance criteria and human decisions in GitHub. Labstride adds execution and technical progress without replacing your planning surface.</p></article>
+          <article class="principle-card"><div class="principle-top"><span class="principle-count">PRINCIPLE_02</span><span class="principle-symbol"><svg class="icon" aria-hidden="true"><use href="#i-rotate"/></svg></span></div><h3>Work should survive interruptions.</h3><p>A small local coordinator records execution identity and recovery state, so uncertainty is handled explicitly rather than blindly repeating actions.</p></article>
+          <article class="principle-card"><div class="principle-top"><span class="principle-count">PRINCIPLE_03</span><span class="principle-symbol"><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg></span></div><h3>Bring your existing stack.</h3><p>Use repository-owned GitHub Actions and configurable mappings. Connectors, actions and optional agents follow versioned extension contracts.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section architecture" id="architecture" aria-labelledby="architecture-title">
+      <div class="container architecture-grid">
+        <div class="architecture-copy">
+          <p class="section-kicker"><b>02 /</b> ARCHITECTURE</p>
+          <h2 class="section-title" id="architecture-title">A small core.<br>Clear ownership.</h2>
+          <p>Labstride's adopted design is a durable hybrid: GitHub owns the task and human intent; the coordinator owns execution continuity; your repository owns CI and delivery.</p>
+          <p>Optional agent integrations participate through explicit, versioned contracts. The public core must work without them.</p>
+          <a class="text-link" href="https://github.com/engshort/labstride/blob/main/docs/adr/0006-hybrid-coordination.md" target="_blank" rel="noopener noreferrer">Read architecture decision ADR-006 <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg></a>
+        </div>
+        <div class="arch-board">
+          <div class="arch-board-top"><span>ARCHITECTURE / RESPONSIBILITY MAP</span><span class="arch-mini-status"><span class="status-dot" aria-hidden="true"></span> ADOPTED DESIGN</span></div>
+          <div class="ownership">
+            <div class="owner-row"><span class="owner-icon"><svg class="icon" aria-hidden="true"><use href="#i-gitbranch"/></svg></span><div><span class="owner-name">GitHub</span><span class="owner-type">HUMAN &amp; TASK AUTHORITY</span></div><div class="owner-role">Issues, priorities, acceptance criteria, authorized decisions, visible updates</div></div>
+            <div class="owner-row"><span class="owner-icon"><svg class="icon" aria-hidden="true"><use href="#i-workflow"/></svg></span><div><span class="owner-name">Coordinator + SQLite</span><span class="owner-type">EXECUTION AUTHORITY</span></div><div class="owner-role">Operation identity, claims, durable state, retries, recovery history</div></div>
+            <div class="owner-row"><span class="owner-icon"><svg class="icon" aria-hidden="true"><use href="#i-terminal"/></svg></span><div><span class="owner-name">SSH target</span><span class="owner-type">WORKSPACE RESOURCES</span></div><div class="owner-role">Isolated checkouts, workspace state and authorized operations</div></div>
+            <div class="owner-row"><span class="owner-icon"><svg class="icon" aria-hidden="true"><use href="#i-bolt"/></svg></span><div><span class="owner-name">GitHub Actions</span><span class="owner-type">REPOSITORY EXECUTION</span></div><div class="owner-role">Build, test, packaging and approved delivery workflows</div></div>
+            <div class="owner-row"><span class="owner-icon"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg></span><div><span class="owner-name">Optional extensions</span><span class="owner-type">REPLACEABLE ADAPTERS</span></div><div class="owner-role">Coding sessions, actions and integrations under declared permissions</div></div>
+          </div>
+          <div class="arch-board-note"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>A responsibility model from the specification. Some components have scoped implementation evidence; this is not a claim of an operational end-to-end release.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="status-section" id="status" aria-labelledby="status-title">
+      <div class="container status-layout">
+        <div class="status-copy">
+          <p class="section-kicker"><b>03 /</b> DEVELOPMENT STATUS</p>
+          <h2 class="section-title" id="status-title">Built in the open.<br>Not rushed to release.</h2>
+          <p>Labstride has a public specification and tested implementation slices, but the first installable version is still ahead. The roadmap keeps the remaining integration and release work visible.</p>
+          <a class="text-link" href="https://github.com/engshort/labstride/blob/main/docs/14-work-packages.md" target="_blank" rel="noopener noreferrer">Explore work packages <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg></a>
+        </div>
+        <div class="milestones" aria-label="Project status overview">
+          <div class="milestone"><span class="milestone-dot" aria-hidden="true"></span><div><div class="milestone-head"><h3>Specification &amp; architecture</h3><span class="milestone-label">Documented</span></div><p>Product boundaries, contracts, security principles, work packages and the durable hybrid architecture are documented publicly.</p></div></div>
+          <div class="milestone is-progress"><span class="milestone-dot" aria-hidden="true"></span><div><div class="milestone-head"><h3>Early implementation &amp; verification</h3><span class="milestone-label">In progress</span></div><p>Scoped coordinator, persistence, configuration and Linux/SSH workspace work has implementation and test evidence. Integrated product readiness remains incomplete.</p></div></div>
+          <div class="milestone is-future"><span class="milestone-dot" aria-hidden="true"></span><div><div class="milestone-head"><h3>First installable public release</h3><span class="milestone-label">Not released</span></div><p>End-to-end GitHub workflows, delivery, cleanup, operations and clean-install evidence remain before a public prerelease.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section faq" aria-labelledby="faq-title">
+      <div class="container faq-layout">
+        <div>
+          <p class="section-kicker"><b>04 /</b> GOOD TO KNOW</p>
+          <h2 class="section-title" id="faq-title">Questions, answered without the hype.</h2>
+        </div>
+        <div class="faq-list">
+          <details><summary>Can I install Labstride today?</summary><p>Not yet. The repository contains the specification, executable contracts and selected implementation slices. There is currently no installable public release. Follow the <a href="https://github.com/engshort/labstride/blob/main/docs/14-work-packages.md" target="_blank" rel="noopener noreferrer">work packages</a> for the remaining steps.</p></details>
+          <details><summary>Does Labstride require an AI agent?</summary><p>No. Agents are optional extensions. The public core is intended to support workspace creation, workflow execution and cleanup without a private agent, its credentials or its hooks.</p></details>
+          <details><summary>Will it replace my CI/CD pipeline?</summary><p>No. Build, test and approved delivery are designed to run through your repository-owned GitHub Actions workflows. Labstride coordinates the work; it is not another build system.</p></details>
+          <details><summary>How can I contribute?</summary><p>Start with the <a href="https://github.com/engshort/labstride/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">contribution guide</a> or browse the <a href="https://github.com/engshort/labstride/issues" target="_blank" rel="noopener noreferrer">open issues</a>. The project uses Apache-2.0 and DCO sign-off; contributors retain their copyright.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="contribute" id="contribute" aria-labelledby="contribute-title">
+      <div class="container">
+        <div class="contribute-panel">
+          <div><p class="contribute-kicker">OPEN SOURCE / APACHE-2.0</p><h2 id="contribute-title">Help shape the foundation before the first release.</h2></div>
+          <div class="contribute-action"><p>Explore the source, review the design decisions, propose improvements or contribute an extension. The project is public, and contributions are welcome.</p><div class="contribute-buttons"><a class="button button-ink" href="https://github.com/engshort/labstride/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">How to contribute <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg></a><a class="button button-outline-dark" href="https://github.com/engshort/labstride/issues" target="_blank" rel="noopener noreferrer">Browse issues <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg></a></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand"><a class="brand" href="#top" aria-label="Back to top"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m4 5 7 7-7 7" stroke="currentColor" stroke-width="2.5"/><path d="m12 5 7 7-7 7" stroke="currentColor" stroke-width="2.5" opacity=".52"/></svg></span><span class="brand-name">labstride<span class="brand-suffix">.dev</span></span></a><p>Open workflows. Your tools.<br>An open-source foundation for development workspaces and workflows.</p></div>
+        <div class="footer-nav"><div><h4>Explore</h4><a href="#approach">Principles</a><a href="#architecture">Architecture</a><a href="#status">Progress</a><a href="https://github.com/engshort/labstride/tree/main/docs" target="_blank" rel="noopener noreferrer">Documentation ↗</a></div><div><h4>Project</h4><a href="https://github.com/engshort/labstride" target="_blank" rel="noopener noreferrer">GitHub ↗</a><a href="https://github.com/engshort/labstride/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing ↗</a><a href="https://github.com/engshort/labstride/blob/main/GOVERNANCE.md" target="_blank" rel="noopener noreferrer">Governance ↗</a><a href="https://github.com/engshort/labstride/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">Apache-2.0 license ↗</a></div></div>
+      </div>
+      <div class="footer-bottom"><span>© <span id="copyright-year">2026</span> Labstride contributors · Apache-2.0</span><span>Community-driven direction. Technical clarity. <a href="#top">Back to top ↑</a></span></div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      'use strict';
+      const button = document.getElementById('menu-button');
+      const menu = document.getElementById('mobile-menu');
+      const menuIcon = document.getElementById('menu-icon');
+      function closeMenu() {
+        menu.classList.remove('is-open');
+        button.setAttribute('aria-expanded', 'false');
+        button.setAttribute('aria-label', 'Open navigation');
+        menuIcon.setAttribute('href', '#i-menu');
+      }
+      button.addEventListener('click', function () {
+        const open = !menu.classList.contains('is-open');
+        menu.classList.toggle('is-open', open);
+        button.setAttribute('aria-expanded', String(open));
+        button.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+        menuIcon.setAttribute('href', open ? '#i-close' : '#i-menu');
+      });
+      menu.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+      document.addEventListener('click', e => { if (!menu.contains(e.target) && !button.contains(e.target)) closeMenu(); });
+      const mq = window.matchMedia('(min-width: 821px)');
+      if (mq.addEventListener) mq.addEventListener('change', e => { if(e.matches) closeMenu(); });
+      document.getElementById('copyright-year').textContent = new Date().getFullYear();
+      if ('IntersectionObserver' in window) {
+        const sectionLinks = Array.from(document.querySelectorAll('.desktop-nav a[href^="#"]'));
+        const byId = Object.fromEntries(sectionLinks.map(a => [a.getAttribute('href').slice(1),a]));
+        const observer = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              sectionLinks.forEach(a => a.removeAttribute('aria-current'));
+              if (byId[entry.target.id]) byId[entry.target.id].setAttribute('aria-current', 'true');
+            }
+          });
+        },{rootMargin:'-25% 0px -58% 0px'});
+        Object.keys(byId).forEach(id => { const section=document.getElementById(id); if(section) observer.observe(section); });
+      }
+    }());
+  </script>
+</body>
+</html>
